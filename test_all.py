@@ -18,7 +18,8 @@ def test_import_config():
     from config import CONFIG
     assert "PINCH_THRESHOLD" in CONFIG
     assert "MIN_DETECTION_CONFIDENCE" in CONFIG
-    assert CONFIG["CURSOR_SENSITIVITY"] == 2.0
+    assert CONFIG["CURSOR_SENSITIVITY_X"] == 2.0
+    assert CONFIG["CURSOR_SENSITIVITY_Y"] == 3.0
 
 def test_import_camera():
     from camera import Camera

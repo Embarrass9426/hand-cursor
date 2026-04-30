@@ -20,29 +20,30 @@ class CursorController:
         self.prev_screen_x = self.screen_w // 2
         self.prev_screen_y = self.screen_h // 2
 
+    def _map_to_screen(self, norm_x, norm_y):
+        center_x = self.screen_w / 2
+        center_y = self.screen_h / 2
+        mapped_x = (norm_x - 0.5) * CONFIG["CURSOR_SENSITIVITY_X"] * self.screen_w + center_x
+        mapped_y = (norm_y - 0.5) * CONFIG["CURSOR_SENSITIVITY_Y"] * self.screen_h + center_y
+        return mapped_x, mapped_y
+
     def move(self, norm_x, norm_y):
+        mapped_x, mapped_y = self._map_to_screen(norm_x, norm_y)
+
         if not self.initialized:
-            pyautogui.moveTo(self.screen_w // 2, self.screen_h // 2, _pause=False)
+            target_x = int(np.clip(mapped_x, self.SAFE_MARGIN, self.screen_w - 1 - self.SAFE_MARGIN))
+            target_y = int(np.clip(mapped_y, self.SAFE_MARGIN, self.screen_h - 1 - self.SAFE_MARGIN))
             self.pos_filter = OneEuroFilter(
                 mincutoff=CONFIG["ONE_EURO_MIN_CUTOFF"],
                 beta=CONFIG["ONE_EURO_BETA"],
                 dcutoff=CONFIG["ONE_EURO_DCUTOFF"],
             )
-            center_x = self.screen_w / 2
-            center_y = self.screen_h / 2
-            init_x = (norm_x - 0.5) * CONFIG["CURSOR_SENSITIVITY"] * self.screen_w + center_x
-            init_y = (norm_y - 0.5) * CONFIG["CURSOR_SENSITIVITY"] * self.screen_h + center_y
-            init_x = int(np.clip(init_x, self.SAFE_MARGIN, self.screen_w - 1 - self.SAFE_MARGIN))
-            init_y = int(np.clip(init_y, self.SAFE_MARGIN, self.screen_h - 1 - self.SAFE_MARGIN))
-            self.pos_filter.apply(float(init_x), float(init_y))
-            self.prev_screen_x = init_x
-            self.prev_screen_y = init_y
+            self.pos_filter.apply(float(target_x), float(target_y))
+            self.prev_screen_x = target_x
+            self.prev_screen_y = target_y
+            pyautogui.moveTo(target_x, target_y, _pause=False)
             self.initialized = True
-
-        center_x = self.screen_w / 2
-        center_y = self.screen_h / 2
-        mapped_x = (norm_x - 0.5) * CONFIG["CURSOR_SENSITIVITY"] * self.screen_w + center_x
-        mapped_y = (norm_y - 0.5) * CONFIG["CURSOR_SENSITIVITY"] * self.screen_h + center_y
+            return
 
         sx, sy = self.pos_filter.apply(mapped_x, mapped_y)
 

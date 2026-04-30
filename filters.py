@@ -11,9 +11,9 @@ class OneEuroFilter:
         self.dx_prev = None
         self.t_prev = None
 
-    def _smoothing_factor(self, cutoff):
-        r = 2.0 * math.pi * cutoff
-        return r / (r + 1.0)
+    def _smoothing_factor(self, dt, cutoff):
+        tau = 1.0 / (2.0 * math.pi * cutoff)
+        return 1.0 / (1.0 + tau / dt)
 
     def _exponential_smoothing(self, a, raw, prev):
         return a * raw + (1.0 - a) * prev
@@ -30,7 +30,7 @@ class OneEuroFilter:
         if dt <= 0:
             dt = 1e-6
 
-        ad = self._smoothing_factor(self.dcutoff)
+        ad = self._smoothing_factor(dt, self.dcutoff)
         dx_x = (x - self.x_prev[0]) / dt
         dx_y = (y - self.x_prev[1]) / dt
         edx_x = self._exponential_smoothing(ad, dx_x, self.dx_prev[0])
@@ -39,8 +39,8 @@ class OneEuroFilter:
 
         cutoff_x = self.mincutoff + self.beta * abs(edx_x)
         cutoff_y = self.mincutoff + self.beta * abs(edx_y)
-        ax = self._smoothing_factor(cutoff_x)
-        ay = self._smoothing_factor(cutoff_y)
+        ax = self._smoothing_factor(dt, cutoff_x)
+        ay = self._smoothing_factor(dt, cutoff_y)
 
         sx = self._exponential_smoothing(ax, x, self.x_prev[0])
         sy = self._exponential_smoothing(ay, y, self.x_prev[1])
