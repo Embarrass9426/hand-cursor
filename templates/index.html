@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hand Gesture Virtual Mouse</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header class="app-header">
+        <h1 class="app-title"><span>&gt;_</span> Hand Gesture Virtual Mouse</h1>
+        <div class="connection-status">
+            <div id="status-dot" class="status-dot disconnected"></div>
+            <span id="status-text">Connecting...</span>
+        </div>
+    </header>
+
+    <main class="app-body">
+        <section class="panel-left">
+            <div class="video-container">
+                <div id="video-placeholder" class="video-placeholder">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z"/>
+                    </svg>
+                    <span>Waiting for video stream...</span>
+                </div>
+                <img id="video-feed" style="display:none" alt="Webcam feed">
+            </div>
+            <div class="gesture-state-bar">
+                <span class="state-label">State</span>
+                <span id="state-value" class="state-value">SEARCHING</span>
+                <div id="gesture-flags" class="gesture-flags"></div>
+            </div>
+        </section>
+
+        <section class="panel-right">
+            <div class="widget">
+                <div class="widget-header">
+                    <span class="widget-title">Click Test</span>
+                    <span class="widget-badge">INTERACTIVE</span>
+                </div>
+                <div class="widget-body">
+                    <button id="click-test-btn" class="click-test-btn">Click Me</button>
+                </div>
+            </div>
+
+            <div class="widget">
+                <div class="widget-header">
+                    <span class="widget-title">Gesture Log</span>
+                    <span class="widget-badge">LIVE</span>
+                </div>
+                <div class="widget-body">
+                    <div id="gesture-log" class="gesture-log"></div>
+                </div>
+            </div>
+
+            <div class="widget">
+                <div class="widget-header">
+                    <span class="widget-title">Drag Test</span>
+                    <span class="widget-badge">INTERACTIVE</span>
+                </div>
+                <div class="widget-body">
+                    <div id="drag-container" class="drag-container">
+                        <div id="drag-box" class="drag-box"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="widget">
+                <div class="widget-header">
+                    <span class="widget-title">Scroll Test</span>
+                    <span class="widget-badge">SCROLLABLE</span>
+                </div>
+                <div class="widget-body">
+                    <div class="scroll-container">
+                        <h3>The Architecture of Natural Systems</h3>
+                        <p>In the deep forests of the Pacific Northwest, ancient mycorrhizal networks connect towering Douglas firs in vast underground webs of mutual aid. These fungal highways, sometimes called the "Wood Wide Web," allow trees to share nutrients, send chemical warnings about insect attacks, and even nurture their own offspring through periods of scarcity. A mother tree, connected to her seedlings through these networks, can recognize her kin and funnel them extra carbon during lean years, demonstrating that cooperation rather than competition may be the dominant strategy in mature ecosystems.</p>
+
+                        <h3>Quantum Computing and the Fabric of Reality</h3>
+                        <p>Quantum computers exploit the strange properties of superposition and entanglement to perform calculations that would take classical computers longer than the age of the universe. A qubit, unlike a classical bit, can exist in a superposition of both 0 and 1 simultaneously. When multiple qubits become entangled, the computational space grows exponentially—just 300 entangled qubits could represent more states than there are atoms in the observable universe. Companies like IBM, Google, and startups like IonQ are racing to build machines that can maintain quantum coherence long enough to solve real problems in cryptography, drug discovery, and materials science.</p>
+
+                        <h3>The Deep Ocean's Living Light</h3>
+                        <p>Below 1,000 meters, the ocean is perpetually dark, yet it is far from lifeless. Bioluminescence—the production of light by living organisms—is the rule rather than the exception in the deep sea. Over 75 percent of deep-sea creatures produce their own light, using it to lure prey, confuse predators, and communicate with potential mates. The anglerfish's famous glowing lure is just one example; deep-sea jellyfish put on spectacular light shows, and some squid eject glowing ink clouds to distract attackers. The chemistry behind this cold light involves a molecule called luciferin and an enzyme called luciferase, a system so efficient that it produces photons with virtually no heat.</p>
+
+                        <h3>Neural Plasticity and Human Potential</h3>
+                        <p>The human brain was once thought to be a fixed organ after childhood, its circuits hardened like poured concrete. Modern neuroscience has overturned this view entirely. Neuroplasticity—the brain's ability to reorganize itself by forming new neural connections—persists throughout life. London taxi drivers, famous for memorizing the city's labyrinthine streets, develop enlarged hippocampi. Musicians who practice string instruments show expanded cortical representation for the fingers of their left hand. Even after devastating strokes, patients can recover lost functions as undamaged regions take over the roles of destroyed tissue, a process that targeted therapy can dramatically accelerate.</p>
+
+                        <h3>The Thermodynamics of Computation</h3>
+                        <p>Landauer's principle, formulated by physicist Rolf Landauer in 1961, establishes a fundamental link between information theory and thermodynamics: erasing a single bit of information necessarily dissipates at least kT ln 2 of energy as heat, where k is Boltzmann's constant and T is the temperature of the circuit. This means that computation is not free—it carries an inescapable thermodynamic cost. As transistors shrink toward atomic scales and data centers consume growing fractions of global electricity production, Landauer's limit looms as the ultimate boundary on computational efficiency, a boundary that no engineering cleverness can circumvent.</p>
+
+                        <h3>Migration Patterns Across Millennia</h3>
+                        <p>Every autumn, Arctic terns embark on a journey that takes them from their breeding grounds in the high Arctic to the Antarctic and back—a round trip of roughly 70,000 kilometers, the longest migration of any animal. Over its lifetime, a single tern may fly the equivalent of three trips to the moon and back. These birds navigate using a combination of magnetic sensing, star patterns, polarized light detection, and possibly even olfactory maps that allow them to smell their way across vast featureless oceans. The precision of their navigation, refined over millions of years of evolution, surpasses anything human engineers have yet achieved in autonomous systems.</p>
+
+                        <h3>The Microbiome Within</h3>
+                        <p>The human body is home to roughly 38 trillion microorganisms—slightly more than the number of human cells. This vast community, collectively known as the microbiome, is not a passive passenger but an active partner in health and disease. Gut bacteria synthesize vitamins, train the immune system, and produce neurotransmitters like serotonin that influence mood and cognition. Disruptions to the microbiome—through antibiotics, processed diets, or environmental toxins—have been linked to conditions ranging from inflammatory bowel disease to depression, obesity, and even Parkinson's disease. The emerging field of psychobiotics explores how targeted manipulation of gut bacteria might one day treat mental health disorders.</p>
+
+                        <h3>Volcanic Lightning and Extreme Physics</h3>
+                        <p>When a volcano erupts with explosive force, it sometimes produces its own weather: volcanic lightning. As ash particles collide violently in the rising plume, they generate static charges the same way rubbing a balloon on your sweater does—but at planetary scale. These charges separate until the electrical potential exceeds the breakdown voltage of the air, and lightning arcs through the ash cloud in spectacular branching displays. During the 2022 Hunga Tonga eruption, volcanic lightning produced over 200,000 flashes, making it the most intense lightning storm ever recorded. Studying these events helps volcanologists track ash plume dynamics and improves aviation safety models.</p>
+
+                        <h3>The Mathematics of Fair Division</h3>
+                        <p>How do you divide a cake so that everyone feels they received a fair share? This seemingly simple question leads to deep mathematics. The "I cut, you choose" method works for two people, but extending it to three or more requires increasingly clever protocols. The Selfridge-Conway procedure guarantees envy-free division among three players, while Brams and Taylor's 1995 algorithm extends envy-freeness to any number of participants—though the number of cuts grows exponentially. These algorithms have real-world applications far beyond birthday cake: they inform how to divide inheritances, allocate radio spectrum licenses, and split territorial waters between nations.</p>
+
+                        <h3>Sonoluminescence: Sound Becomes Light</h3>
+                        <p>When a bubble of gas trapped in a liquid is bombarded with sound waves, it can collapse with such violence that it emits a flash of light—this is sonoluminescence. The phenomenon was discovered accidentally in 1934 at the University of Cologne, and it remains one of the most puzzling observations in physics. Temperatures inside the collapsing bubble may briefly reach tens of thousands of degrees, hot enough to sustain nuclear fusion reactions if the conditions are right. While "bubble fusion" remains controversial and unconfirmed, sonoluminescence continues to challenge our understanding of how mechanical energy can concentrate into extreme conditions within a volume smaller than a grain of sand.</p>
+
+                        <h3>The Long Now of Civilization</h3>
+                        <p>The Long Now Foundation is building a clock designed to keep time for 10,000 years, housed inside a mountain in West Texas. Its chime mechanism generates a different bell sequence each day for 10,000 years without repeating—a combinatorial feat made possible by exploiting the mathematical properties of sequences. The project is a deliberate provocation: by creating artifacts that force us to think on geological timescales, its founders hope to shift cultural attention away from the next fiscal quarter and toward the next millennium. In an era of accelerating change, the Clock of the Long Now asks what it means to be a responsible ancestor.</p>
+
+                        <h3>Coral Symbiosis and Bleaching</h3>
+                        <p>Reef-building corals are composite organisms: animals that house microscopic algae called zooxanthellae within their tissues. The algae photosynthesize, providing up to 90 percent of the coral's energy, while the coral provides shelter and carbon dioxide. This partnership is exquisitely temperature-sensitive. When ocean waters warm by even one or two degrees above the seasonal maximum, corals expel their algae partners in a stress response called bleaching. Without their photosynthetic guests, the coral turns white and, if temperatures don't quickly return to normal, starves. Mass bleaching events, driven by climate change, have already destroyed significant portions of the Great Barrier Reef, and projections suggest that without dramatic emissions reductions, tropical coral ecosystems could be functionally gone by mid-century.</p>
+
+                        <h3>Information Theory and the Noise of the Universe</h3>
+                        <p>Claude Shannon's 1948 paper "A Mathematical Theory of Communication" founded information theory by proving that reliable communication is possible over noisy channels, provided the transmission rate stays below a threshold called channel capacity. This result underpins every digital technology from mobile phones to deep-space telemetry. But noise is not merely an obstacle—it is also a resource. Random noise can be harnessed for cryptographic key generation, stochastic resonance can amplify weak signals in nonlinear systems, and the cosmic microwave background radiation itself is noise left over from the Big Bang, carrying information about the universe when it was just 380,000 years old.</p>
+
+                        <h3>The Art of Japanese Joinery</h3>
+                        <p>Traditional Japanese carpentry achieves remarkable structural integrity without nails, screws, or adhesives. Instead, it relies on intricate interlocking joints—tsugite for splicing and shachi for connecting beams—carved with such precision that friction and geometry alone hold buildings together for centuries. The Horyu-ji temple in Nara, built in the seventh century, still stands using these techniques, having survived countless earthquakes that would have shattered conventionally fastened structures. The joints are designed to flex slightly under seismic loads, absorbing energy that would otherwise destroy rigid connections. Modern engineers study these ancient techniques for inspiration in designing resilient structures.</p>
+
+                        <h3>Extremophiles and the Search for Extraterrestrial Life</h3>
+                        <p>Life on Earth has colonized environments once thought impossible: boiling hydrothermal vents at the bottom of the ocean, acidic mine drainage with pH below zero, Antarctic ice sheets where temperatures never rise above minus forty, and nuclear reactor cores bathed in lethal radiation. These extremophiles expand our understanding of life's possible chemistry and, by extension, where we might find it elsewhere in the cosmos. If microbes can thrive in boiling acid on Earth, similar organisms might survive beneath the ice shells of Jupiter's moon Europa or in the methane lakes of Saturn's moon Titan. Astrobiologists now design detection instruments specifically to look for the metabolic signatures of extremophile analogs.</p>
+
+                        <h3>The Speed of Trust in Distributed Systems</h3>
+                        <p>In distributed computing, the Byzantine Generals Problem asks how a group of agents can reach consensus when some may be lying or malfunctioning. Leslie Lamport proved in 1982 that consensus is achievable if and only if fewer than one-third of agents are faulty—a result with profound implications for blockchain networks, distributed databases, and autonomous vehicle coordination. Modern proof-of-stake systems like Ethereum's Casper protocol build on this foundation, using economic incentives and cryptographic proofs to ensure honest behavior at scale. The fundamental insight remains: trust is not a social luxury but a computational necessity, and the mathematics of trust determines what decentralized systems can achieve.</p>
+
+                        <h3>Bioluminescent Bays and Coastal Phenomena</h3>
+                        <p>In a handful of sheltered bays around the world—Mosquito Bay in Puerto Rico, Toyama Bay in Japan, and the Jervis Bay lagoons in Australia—the water glows with an ethereal blue light when disturbed. This bioluminescence is produced by dinoflagellates, single-celled organisms that emit light through a chemical reaction when mechanically stimulated by waves, boats, or swimming animals. The glow serves a defensive purpose: by illuminating whatever disturbs them, the dinoflagellates make predators visible to even larger predators. Conservation efforts are critical, as light pollution, coastal development, and changes in water chemistry threaten these fragile ecosystems that have existed for thousands of years.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

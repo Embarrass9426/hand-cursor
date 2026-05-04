@@ -1,200 +1,188 @@
 import time
 from config import CONFIG
-from hand_tracker import calc_distance, is_finger_extended, is_fist, is_thumb_middle_pinch
-
 
 SEARCHING = "SEARCHING"
 IDLE = "IDLE"
 CURSOR = "CURSOR"
-PENDING_CLICK = "PENDING_CLICK"
-CLICK = "CLICK"
+INDEX_DOWN = "INDEX_DOWN"
+MIDDLE_DOWN = "MIDDLE_DOWN"
+LEFT_CLICK = "LEFT_CLICK"
+RIGHT_CLICK = "RIGHT_CLICK"
 DOUBLE_CLICK = "DOUBLE_CLICK"
-DRAG = "DRAG"
-SCROLL = "SCROLL"
-FIST_HOLD = "FIST_HOLD"
+DRAGGING = "DRAGGING"
+CLICK_DOWN = "CLICK_DOWN"
+SCROLLING = "SCROLLING"
 
 
 class GestureClassifier:
     def __init__(self):
         self.state = SEARCHING
-        self.pinch_start_time = 0
-        self.prev_wrist_y = None
         self.lost_frames = 0
+        self.index_down_start = None
+        self.fist_start_time = None
+        self.scroll_start_time = None
         self.is_dragging = False
         self.unlock_cooldown = 0
-        self.fist_start_time = None
 
-    def update(self, landmarks):
+    def update(self, landmarks, gestures):
+        if self.state in (LEFT_CLICK, RIGHT_CLICK, DOUBLE_CLICK):
+            self._transition(IDLE)
+
         if landmarks is None:
             self.lost_frames += 1
             if self.lost_frames > CONFIG["MAX_LOST_FRAMES"]:
                 if self.state != SEARCHING:
                     self._transition(SEARCHING)
-                self.prev_wrist_y = None
                 self.is_dragging = False
                 self.fist_start_time = None
-                return {"state": SEARCHING, "cursor_pos": None, "scroll_delta": 0, "unlock": True}
-            return {"state": self.state, "cursor_pos": None, "scroll_delta": 0}
+                self.index_down_start = None
+                return {"state": SEARCHING, "cursor_pos": None, "scroll_delta": 0, "unlock": True, "action": None}
+            return {"state": self.state, "cursor_pos": None, "scroll_delta": 0, "unlock": False, "action": None}
 
         self.lost_frames = 0
-
         if self.unlock_cooldown > 0:
             self.unlock_cooldown -= 1
 
         if self.state == SEARCHING:
-            return self._handle_searching(landmarks)
+            return self._handle_searching(landmarks, gestures)
 
-        if self.state == FIST_HOLD:
-            return self._handle_fist_hold(landmarks)
-
-        if is_fist(landmarks):
+        if gestures["closed_fist"]:
             if self.fist_start_time is None:
                 self.fist_start_time = time.time()
-            hold_duration = time.time() - self.fist_start_time
-            if hold_duration >= CONFIG["FIST_HOLD_SEC"]:
+            if time.time() - self.fist_start_time >= CONFIG["FIST_HOLD_SEC"]:
                 self.is_dragging = False
-                self.prev_wrist_y = None
                 self.fist_start_time = None
+                self.index_down_start = None
                 self.unlock_cooldown = 30
                 self._transition(SEARCHING)
-                return {"state": SEARCHING, "cursor_pos": None, "scroll_delta": 0, "unlock": True}
-            progress = hold_duration / CONFIG["FIST_HOLD_SEC"]
-            return {"state": FIST_HOLD, "cursor_pos": None, "scroll_delta": 0, "fist_progress": progress}
+                return {"state": SEARCHING, "cursor_pos": None, "scroll_delta": 0, "unlock": True, "action": None}
         else:
             self.fist_start_time = None
 
-        thumb_index = calc_distance(landmarks[4], landmarks[8])
-        thumb_middle = calc_distance(landmarks[4], landmarks[12])
-        wrist = landmarks[0]
+        scroll_active = gestures.get("scroll_down") or gestures.get("scroll_up")
+        if scroll_active and self.state != SCROLLING:
+            if self.scroll_start_time is None:
+                self.scroll_start_time = time.time()
+            if time.time() - self.scroll_start_time >= CONFIG["SCROLL_HOLD_SEC"]:
+                self.is_dragging = False
+                self.index_down_start = None
+                self.scroll_start_time = None
+                self._transition(SCROLLING)
+                return {"state": SCROLLING, "cursor_pos": self._cursor_pos(landmarks), "scroll_delta": gestures.get("scroll_delta", 0), "unlock": False, "action": None}
+        else:
+            self.scroll_start_time = None
 
         if self.state == IDLE:
-            return self._handle_idle(landmarks, thumb_index, thumb_middle, wrist)
-
+            return self._handle_idle(landmarks, gestures)
         if self.state == CURSOR:
-            return self._handle_cursor(landmarks, thumb_index, thumb_middle, wrist)
+            return self._handle_cursor(landmarks, gestures)
+        if self.state == SCROLLING:
+            return self._handle_scrolling(landmarks, gestures)
+        if self.state == DRAGGING:
+            return self._handle_dragging(landmarks, gestures)
+        if self.state == CLICK_DOWN:
+            return self._handle_click_down(landmarks, gestures)
+        if self.state == MIDDLE_DOWN:
+            return self._handle_middle_down(landmarks, gestures)
 
-        if self.state == PENDING_CLICK:
-            return self._handle_pending_click(landmarks, thumb_index, thumb_middle, wrist)
-
-        if self.state == DRAG:
-            return self._handle_drag(landmarks, thumb_index, wrist)
-
-        if self.state == SCROLL:
-            return self._handle_scroll(landmarks, thumb_index, wrist)
-
-        return {"state": self.state, "cursor_pos": None, "scroll_delta": 0}
+        return {"state": self.state, "cursor_pos": None, "scroll_delta": 0, "unlock": False, "action": None}
 
     def _transition(self, new_state):
         if CONFIG["PRINT_STATE_CHANGES"] and new_state != self.state:
             print(f"[State] {self.state} -> {new_state}")
         self.state = new_state
 
-    def _handle_searching(self, landmarks):
-        from hand_tracker import is_thumb_index_pinch
+    def _cursor_pos(self, landmarks):
+        return (landmarks[CONFIG["CURSOR_LANDMARK"]].x, landmarks[CONFIG["CURSOR_LANDMARK"]].y)
 
-        if is_thumb_index_pinch(landmarks):
+    def _handle_searching(self, landmarks, gestures):
+        if gestures["ok_sign"]:
             self._transition(IDLE)
-            return {"state": IDLE, "cursor_pos": None, "scroll_delta": 0}
-        return {"state": SEARCHING, "cursor_pos": None, "scroll_delta": 0}
+            return {"state": IDLE, "cursor_pos": None, "scroll_delta": 0, "unlock": False, "action": None}
+        return {"state": SEARCHING, "cursor_pos": None, "scroll_delta": 0, "unlock": False, "action": None}
 
-    def _handle_idle(self, landmarks, thumb_index, thumb_middle, wrist):
-        if is_thumb_middle_pinch(landmarks):
-            self._transition(DOUBLE_CLICK)
-            return {"state": DOUBLE_CLICK, "cursor_pos": None, "scroll_delta": 0}
-
-        if thumb_index > CONFIG["OPEN_THRESHOLD"]:
-            self.prev_wrist_y = wrist.y
-            self._transition(CURSOR)
-            return {
-                "state": CURSOR,
-                "cursor_pos": (wrist.x, wrist.y),
-                "scroll_delta": 0,
-            }
-
-        if thumb_index < CONFIG["PINCH_THRESHOLD"]:
-            self.pinch_start_time = time.time()
-            self._transition(PENDING_CLICK)
-            return {"state": PENDING_CLICK, "cursor_pos": None, "scroll_delta": 0}
-
-        return {"state": IDLE, "cursor_pos": None, "scroll_delta": 0}
-
-    def _handle_cursor(self, landmarks, thumb_index, thumb_middle, wrist):
-        if is_thumb_middle_pinch(landmarks):
-            self._transition(DOUBLE_CLICK)
-            return {"state": DOUBLE_CLICK, "cursor_pos": None, "scroll_delta": 0}
-
-        if thumb_index < CONFIG["PINCH_THRESHOLD"] and thumb_middle > CONFIG["THREE_PINCH_THRESHOLD"]:
-            self.pinch_start_time = time.time()
-            self._transition(PENDING_CLICK)
-            return {"state": PENDING_CLICK, "cursor_pos": None, "scroll_delta": 0}
-
-        if thumb_index < CONFIG["THREE_PINCH_THRESHOLD"] and thumb_middle < CONFIG["THREE_PINCH_THRESHOLD"]:
-            self.prev_wrist_y = wrist.y
-            self._transition(SCROLL)
-            return {"state": SCROLL, "cursor_pos": None, "scroll_delta": 0}
-
-        self.prev_wrist_y = wrist.y
-        return {
-            "state": CURSOR,
-            "cursor_pos": (wrist.x, wrist.y),
-            "scroll_delta": 0,
-        }
-
-    def _handle_pending_click(self, landmarks, thumb_index, thumb_middle, wrist):
-        hold_duration = time.time() - self.pinch_start_time
-        drag_progress = min(hold_duration / CONFIG["DRAG_HOLD_SEC"], 1.0)
-        pinch_pos = ((landmarks[4].x + landmarks[8].x) / 2, (landmarks[4].y + landmarks[8].y) / 2)
-
-        if hold_duration >= CONFIG["DRAG_HOLD_SEC"]:
+    def _handle_idle(self, landmarks, gestures):
+        if gestures["ok_sign"]:
             self.is_dragging = True
-            self._transition(DRAG)
-            return {"state": DRAG, "cursor_pos": (wrist.x, wrist.y), "scroll_delta": 0}
+            self._transition(DRAGGING)
+            return {"state": DRAGGING, "cursor_pos": self._cursor_pos(landmarks), "scroll_delta": 0, "unlock": False, "action": "drag_start"}
+        if gestures["open_palm"]:
+            self._transition(CURSOR)
+            return {"state": CURSOR, "cursor_pos": self._cursor_pos(landmarks), "scroll_delta": 0, "unlock": False, "action": None}
+        if gestures["index_dip_bent"]:
+            self.index_down_start = time.time()
+            self._transition(CLICK_DOWN)
+            return {"state": CLICK_DOWN, "cursor_pos": None, "scroll_delta": 0, "unlock": False, "action": None}
+        if gestures["middle_dip_bent"]:
+            self._transition(MIDDLE_DOWN)
+            return {"state": MIDDLE_DOWN, "cursor_pos": None, "scroll_delta": 0, "unlock": False, "action": None}
+        if gestures.get("ring_dip_bent"):
+            self._transition(DOUBLE_CLICK)
+            return {"state": DOUBLE_CLICK, "cursor_pos": None, "scroll_delta": 0, "unlock": False, "action": "double_click"}
+        return {"state": IDLE, "cursor_pos": self._cursor_pos(landmarks), "scroll_delta": 0, "unlock": False, "action": None}
 
-        if thumb_index > CONFIG["OPEN_THRESHOLD"]:
-            self._transition(CLICK)
-            return {"state": CLICK, "cursor_pos": None, "scroll_delta": 0}
+    def _handle_cursor(self, landmarks, gestures):
+        if gestures["ok_sign"]:
+            self.is_dragging = True
+            self._transition(DRAGGING)
+            return {"state": DRAGGING, "cursor_pos": self._cursor_pos(landmarks), "scroll_delta": 0, "unlock": False, "action": "drag_start"}
+        if gestures["index_dip_bent"]:
+            self.index_down_start = time.time()
+            self._transition(CLICK_DOWN)
+            return {"state": CLICK_DOWN, "cursor_pos": None, "scroll_delta": 0, "unlock": False, "action": None}
+        if gestures["middle_dip_bent"]:
+            self._transition(MIDDLE_DOWN)
+            return {"state": MIDDLE_DOWN, "cursor_pos": None, "scroll_delta": 0, "unlock": False, "action": None}
+        if gestures.get("ring_dip_bent"):
+            self._transition(DOUBLE_CLICK)
+            return {"state": DOUBLE_CLICK, "cursor_pos": None, "scroll_delta": 0, "unlock": False, "action": "double_click"}
+        return {"state": CURSOR, "cursor_pos": self._cursor_pos(landmarks), "scroll_delta": 0, "unlock": False, "action": None}
 
-        return {"state": PENDING_CLICK, "cursor_pos": None, "scroll_delta": 0, "drag_progress": drag_progress, "pinch_pos": pinch_pos}
+    def _handle_click_down(self, landmarks, gestures):
+        if gestures["ok_sign"]:
+            self.is_dragging = True
+            self.index_down_start = None
+            self._transition(DRAGGING)
+            return {"state": DRAGGING, "cursor_pos": self._cursor_pos(landmarks), "scroll_delta": 0, "unlock": False, "action": "drag_start"}
+        if gestures["index_dip_bent"]:
+            return {"state": CLICK_DOWN, "cursor_pos": self._cursor_pos(landmarks), "scroll_delta": 0, "unlock": False, "action": None}
+        self.index_down_start = None
+        self._transition(LEFT_CLICK)
+        return {"state": LEFT_CLICK, "cursor_pos": None, "scroll_delta": 0, "unlock": False, "action": "left_click"}
 
-    def _handle_drag(self, landmarks, thumb_index, wrist):
-        if thumb_index > CONFIG["OPEN_THRESHOLD"]:
+    def _handle_middle_down(self, landmarks, gestures):
+        if not gestures["middle_dip_bent"]:
+            self._transition(RIGHT_CLICK)
+            return {"state": RIGHT_CLICK, "cursor_pos": None, "scroll_delta": 0, "unlock": False, "action": "right_click"}
+        return {"state": MIDDLE_DOWN, "cursor_pos": self._cursor_pos(landmarks), "scroll_delta": 0, "unlock": False, "action": None}
+
+    def _handle_dragging(self, landmarks, gestures):
+        if not gestures["ok_sign"]:
             self.is_dragging = False
             self._transition(IDLE)
-            return {"state": IDLE, "cursor_pos": None, "scroll_delta": 0}
+            return {"state": IDLE, "cursor_pos": None, "scroll_delta": 0, "unlock": False, "action": "drag_end"}
+        return {"state": DRAGGING, "cursor_pos": self._cursor_pos(landmarks), "scroll_delta": 0, "unlock": False, "action": None}
 
-        return {
-            "state": DRAG,
-            "cursor_pos": (wrist.x, wrist.y),
-            "scroll_delta": 0,
-        }
-
-    def _handle_scroll(self, landmarks, thumb_index, wrist):
-        if thumb_index > CONFIG["SCROLL_EXIT_THRESHOLD"]:
-            self._transition(IDLE)
-            self.prev_wrist_y = None
-            return {"state": IDLE, "cursor_pos": None, "scroll_delta": 0}
-
-        scroll_delta = 0
-        if self.prev_wrist_y is not None:
-            delta_y = wrist.y - self.prev_wrist_y
-            scroll_delta = delta_y * CONFIG["SCROLL_SENSITIVITY"]
-
-        self.prev_wrist_y = wrist.y
-        return {"state": SCROLL, "cursor_pos": None, "scroll_delta": scroll_delta}
-
-    def _handle_fist_hold(self, landmarks):
-        if is_fist(landmarks):
-            hold_duration = time.time() - self.fist_start_time if self.fist_start_time else 0
-            if hold_duration >= CONFIG["FIST_HOLD_SEC"]:
-                self.is_dragging = False
-                self.prev_wrist_y = None
-                self.fist_start_time = None
-                self.unlock_cooldown = 30
-                self._transition(SEARCHING)
-                return {"state": SEARCHING, "cursor_pos": None, "scroll_delta": 0, "unlock": True}
-            progress = hold_duration / CONFIG["FIST_HOLD_SEC"]
-            return {"state": FIST_HOLD, "cursor_pos": None, "scroll_delta": 0, "fist_progress": progress}
-
-        self.fist_start_time = None
+    def _handle_scrolling(self, landmarks, gestures):
+        if gestures.get("scroll_down") or gestures.get("scroll_up"):
+            scroll_delta = gestures.get("scroll_delta", 0)
+            return {"state": SCROLLING, "cursor_pos": self._cursor_pos(landmarks), "scroll_delta": scroll_delta, "unlock": False, "action": "scroll"}
+        if gestures["ok_sign"]:
+            self.is_dragging = True
+            self._transition(DRAGGING)
+            return {"state": DRAGGING, "cursor_pos": self._cursor_pos(landmarks), "scroll_delta": 0, "unlock": False, "action": "drag_start"}
+        if gestures["open_palm"]:
+            self._transition(CURSOR)
+            return {"state": CURSOR, "cursor_pos": self._cursor_pos(landmarks), "scroll_delta": 0, "unlock": False, "action": None}
+        if gestures["index_dip_bent"]:
+            self.index_down_start = time.time()
+            self._transition(CLICK_DOWN)
+            return {"state": CLICK_DOWN, "cursor_pos": None, "scroll_delta": 0, "unlock": False, "action": None}
+        if gestures["middle_dip_bent"]:
+            self._transition(MIDDLE_DOWN)
+            return {"state": MIDDLE_DOWN, "cursor_pos": None, "scroll_delta": 0, "unlock": False, "action": None}
+        if gestures.get("ring_dip_bent"):
+            self._transition(DOUBLE_CLICK)
+            return {"state": DOUBLE_CLICK, "cursor_pos": None, "scroll_delta": 0, "unlock": False, "action": "double_click"}
         self._transition(IDLE)
-        return {"state": IDLE, "cursor_pos": None, "scroll_delta": 0}
+        return {"state": IDLE, "cursor_pos": self._cursor_pos(landmarks), "scroll_delta": 0, "unlock": False, "action": None}

@@ -53,3 +53,52 @@ class OneEuroFilter:
         self.x_prev = None
         self.dx_prev = None
         self.t_prev = None
+
+
+class DeadzoneFilter:
+    def __init__(self, threshold):
+        self.threshold = threshold
+        self.prev = None
+
+    def apply(self, x, y):
+        if self.prev is None:
+            self.prev = (x, y)
+            return x, y
+        dx = abs(x - self.prev[0])
+        dy = abs(y - self.prev[1])
+        if dx < self.threshold and dy < self.threshold:
+            return self.prev[0], self.prev[1]
+        self.prev = (x, y)
+        return x, y
+
+    def reset(self):
+        self.prev = None
+
+
+class LandmarkSmoother:
+    NUM_LANDMARKS = 21
+
+    def __init__(self, config):
+        self.deadzone_filters = [DeadzoneFilter(config["DEADZONE_THRESHOLD"]) for _ in range(self.NUM_LANDMARKS)]
+        self.euro_filters = [
+            OneEuroFilter(
+                mincutoff=config["ONE_EURO_MIN_CUTOFF"],
+                beta=config["ONE_EURO_BETA"],
+                dcutoff=config["ONE_EURO_DCUTOFF"],
+            )
+            for _ in range(self.NUM_LANDMARKS)
+        ]
+
+    def smooth(self, landmarks):
+        result = []
+        for i, lm in enumerate(landmarks):
+            x, y = self.deadzone_filters[i].apply(lm.x, lm.y)
+            x, y = self.euro_filters[i].apply(x, y)
+            result.append((x, y))
+        return result
+
+    def reset(self):
+        for f in self.deadzone_filters:
+            f.reset()
+        for f in self.euro_filters:
+            f.reset()

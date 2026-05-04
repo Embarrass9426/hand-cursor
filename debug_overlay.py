@@ -1,18 +1,19 @@
 import cv2
 import numpy as np
 from mediapipe.tasks.python.vision import HandLandmarksConnections, drawing_utils, drawing_styles
-from gesture_classifier import SEARCHING, IDLE, CURSOR, PENDING_CLICK, CLICK, DOUBLE_CLICK, DRAG, SCROLL, FIST_HOLD
+from gesture_classifier import SEARCHING, IDLE, CURSOR, MIDDLE_DOWN, LEFT_CLICK, RIGHT_CLICK, DOUBLE_CLICK, DRAGGING, CLICK_DOWN, SCROLLING
 
 STATE_COLORS = {
     SEARCHING: (128, 128, 128),
     IDLE: (0, 255, 255),
     CURSOR: (0, 255, 0),
-    PENDING_CLICK: (0, 165, 255),
-    CLICK: (0, 0, 255),
+    MIDDLE_DOWN: (0, 165, 255),
+    LEFT_CLICK: (0, 0, 255),
+    RIGHT_CLICK: (255, 0, 0),
     DOUBLE_CLICK: (255, 0, 255),
-    DRAG: (0, 140, 255),
-    SCROLL: (255, 255, 0),
-    FIST_HOLD: (0, 0, 200),
+    DRAGGING: (0, 140, 255),
+    CLICK_DOWN: (0, 165, 255),
+    SCROLLING: (255, 200, 0),
 }
 
 
@@ -35,13 +36,6 @@ def draw_overlay(frame, result, hand_tracker, state, locked_label, drag_progress
                 drawing_styles.get_default_hand_connections_style(),
             )
 
-    if state == FIST_HOLD and fist_progress > 0:
-        cx, cy = w // 2, h // 2
-        draw_progress_arc(frame, cx, cy, fist_progress, radius=50, thickness=5, color_combo=((0, 0, 200), (0, 0, 255)))
-        pct = int(fist_progress * 100)
-        cv2.putText(frame, f"UNLOCKING... {pct}%", (cx - 80, cy + 70),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2, cv2.LINE_AA)
-
     color = STATE_COLORS.get(state, (255, 255, 255))
     label = state
     if locked_label:
@@ -52,21 +46,30 @@ def draw_overlay(frame, result, hand_tracker, state, locked_label, drag_progress
         cv2.FONT_HERSHEY_SIMPLEX, 1.0, color, 2, cv2.LINE_AA,
     )
 
-    if state == SCROLL:
-        cv2.putText(frame, "SCROLL MODE", (10, 70),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2, cv2.LINE_AA)
-    elif state == CURSOR:
+    if state == CURSOR:
         cv2.putText(frame, "MOVING", (10, 70),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2, cv2.LINE_AA)
-    elif state == PENDING_CLICK:
-        pct = int(drag_progress * 100)
-        cv2.putText(frame, f"HOLDING... {pct}%", (10, 70),
+    elif state == MIDDLE_DOWN:
+        cv2.putText(frame, "MIDDLE DOWN", (10, 70),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 165, 255), 2, cv2.LINE_AA)
-        if pinch_pos is not None and drag_progress > 0:
-            draw_progress_arc(frame, int(pinch_pos[0] * w), int(pinch_pos[1] * h), drag_progress)
-    elif state == DRAG:
+    elif state == DRAGGING:
         cv2.putText(frame, "DRAGGING", (10, 70),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 140, 255), 2, cv2.LINE_AA)
+    elif state == LEFT_CLICK:
+        cv2.putText(frame, "LEFT CLICK", (10, 70),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2, cv2.LINE_AA)
+    elif state == RIGHT_CLICK:
+        cv2.putText(frame, "RIGHT CLICK", (10, 70),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 0), 2, cv2.LINE_AA)
+    elif state == DOUBLE_CLICK:
+        cv2.putText(frame, "DOUBLE CLICK", (10, 70),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 255), 2, cv2.LINE_AA)
+    elif state == CLICK_DOWN:
+        cv2.putText(frame, "CLICK DOWN", (10, 70),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 165, 255), 2, cv2.LINE_AA)
+    elif state == SCROLLING:
+        cv2.putText(frame, "SCROLLING", (10, 70),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 200, 0), 2, cv2.LINE_AA)
 
     lock_text = "LOCKED" if locked_label else "UNLOCKED"
     lock_color = (0, 255, 0) if locked_label else (0, 0, 255)
